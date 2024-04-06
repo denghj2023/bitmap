@@ -4,7 +4,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Optional;
 
@@ -34,17 +33,13 @@ public class EventDTO extends HashMap<String, Object> {
     }
 
     public ZonedDateTime getEventTime() {
-        ZonedDateTime requestTime = Optional.ofNullable(get("request_time"))
-                .map(Object::toString)
-                // 2024-04-05T02:43:00+08:00
-                .map(s -> ZonedDateTime.parse(s, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
-                .orElse(null);
+        ZonedDateTime requestTime = ZonedDateTime.now();
 
         Long eventTimeOffsetSec = Optional.ofNullable(get("event_time_offset_sec"))
                 .map(Object::toString)
                 .map(Long::parseLong)
                 .orElse(0L);
 
-        return requestTime != null ? requestTime.plusSeconds(eventTimeOffsetSec) : null;
+        return requestTime.plusSeconds(eventTimeOffsetSec);
     }
 }

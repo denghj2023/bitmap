@@ -21,6 +21,10 @@ import java.time.LocalDateTime;
 @RequestMapping("/events")
 public class HeartbeatController {
 
+    /**
+     * Key of heartbeat record of the device.
+     */
+    public static final String KEY_OF_HEARTBEAT_PER_MINUTE = "device:%s:heartbeat_per_minute";
     @Resource
     private StringRedisTemplate stringRedisTemplate;
     @Resource
@@ -28,7 +32,7 @@ public class HeartbeatController {
 
     /**
      * Use Redis bitmap to record the heartbeat of the device,
-     * determine offset according to the current time,
+     * determine offset according to the event time,
      * and set the corresponding bit to 1.
      */
     @PostMapping("/heartbeat")
@@ -39,13 +43,19 @@ public class HeartbeatController {
         // Get first launch time of th device.
         String key = String.format(AppLaunchController.KEY_OF_FIRST_LAUNCH_TIME, deviceId);
         LocalDateTime firstLaunchTime = redisTemplate.opsForValue().get(key);
+
         if (firstLaunchTime != null) {
             // Calculate the offset.
-            long offset = Duration.between(firstLaunchTime, eventTime).toMinutes();
-            log.debug("Device {} heartbeat at {}", deviceId, offset);
+            LocalDateTime start = firstLaunchTime.withHour(0).withMinute(0).withSecond(0).withNano(0);
+            long offset = Duration.between(start, eventTime).toMinutes();
+
+            // Present the offset as hour:minute.
+            String offsetStr = String.format("%d(%d:%d)", offset, offset / 60, offset % 60);
+            log.debug("Device {} heartbeat at {}", deviceId, offsetStr);
 
             // Set the corresponding bit to 1.
-            stringRedisTemplate.opsForValue().setBit(deviceId, offset, true);
+            String keyOfHeartbeat = String.format(KEY_OF_HEARTBEAT_PER_MINUTE, deviceId);
+            stringRedisTemplate.opsForValue().setBit(keyOfHeartbeat, offset, true);
         }
 
         return MapUtil.builder()

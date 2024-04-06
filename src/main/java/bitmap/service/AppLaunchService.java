@@ -52,4 +52,9 @@ public interface AppLaunchService {
      * @return daily launch event of the device
      */
     EventDTO getDailyLaunch(String deviceId, LocalDate launchDate);
+
+    /**
+     * Statistics retention.
+     */
+    void statisticsRetention(LocalDate activeDate);
 }

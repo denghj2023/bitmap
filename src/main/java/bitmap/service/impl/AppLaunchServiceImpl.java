@@ -3,10 +3,14 @@ package bitmap.service.impl;
 import bitmap.dto.EventDTO;
 import bitmap.service.AppLaunchService;
 import lombok.extern.slf4j.Slf4j;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.document.Document;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
-import org.springframework.data.elasticsearch.core.query.IndexQuery;
-import org.springframework.data.elasticsearch.core.query.IndexQueryBuilder;
+import org.springframework.data.elasticsearch.core.query.*;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -14,8 +18,12 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -146,5 +154,74 @@ public class AppLaunchServiceImpl implements AppLaunchService {
         return elasticsearchRestTemplate.get(deviceId + "_" + launchDate,
                 EventDTO.class,
                 IndexCoordinates.of("daily_app_launch_unique"));
+    }
+
+    @Override
+    public void statisticsRetention(LocalDate activeDate) {
+        // Query daily launch event of the device from ES, and calculate the retention of device.
+        this.queryDailyLaunchEvent(activeDate, this::calculateRetentionOfDevice);
+    }
+
+    // Query daily launch event of the device from ES.
+    private void queryDailyLaunchEvent(LocalDate activeDate, Consumer<List<EventDTO>> consumer) {
+        ZonedDateTime start = activeDate.atStartOfDay(ZoneId.systemDefault());
+        int pageSize = 500;
+        int currentPage = 0;
+
+        while (true) {
+            NativeSearchQueryBuilder queryBuilder = new NativeSearchQueryBuilder();
+            queryBuilder.withQuery(QueryBuilders.boolQuery().filter(
+                    QueryBuilders.rangeQuery("launch_time")
+                            .gte(start)
+                            .lt(start.plusDays(1))
+            ));
+            queryBuilder.withPageable(PageRequest.of(currentPage, pageSize));
+            NativeSearchQuery searchQuery = queryBuilder.build();
+            SearchHits<EventDTO> searchHits = elasticsearchRestTemplate.search(searchQuery,
+                    EventDTO.class,
+                    IndexCoordinates.of("daily_app_launch_unique"));
+            List<EventDTO> results = searchHits.stream()
+                    .map(SearchHit::getContent)
+                    .collect(Collectors.toList());
+
+            // Consume the results.
+            consumer.accept(results);
+
+            if (results.size() < pageSize) {
+                break;
+            }
+
+            currentPage++;
+        }
+    }
+
+    // Calculate the retention of device.
+    private void calculateRetentionOfDevice(List<EventDTO> eventDTOS) {
+        List<UpdateQuery> queries = new ArrayList<>(eventDTOS.size());
+        for (EventDTO eventDTO : eventDTOS) {
+            // Calculate retention of device.
+            String key = String.format(KEY_OF_LAUNCH_PER_DAY, eventDTO.getDeviceId());
+
+            // Update the session duration to ES.
+            EventDTO entity = new EventDTO();
+            entity.put("retention_day_1",
+                    Boolean.TRUE.equals(stringRedisTemplate.opsForValue().getBit(key, 1)) ? 1 : 0);
+            entity.put("retention_day_2",
+                    Boolean.TRUE.equals(stringRedisTemplate.opsForValue().getBit(key, 2)) ? 1 : 0);
+            entity.put("retention_day_3",
+                    Boolean.TRUE.equals(stringRedisTemplate.opsForValue().getBit(key, 3)) ? 1 : 0);
+            entity.put("retention_day_7",
+                    Boolean.TRUE.equals(stringRedisTemplate.opsForValue().getBit(key, 7)) ? 1 : 0);
+            entity.put("retention_day_15",
+                    Boolean.TRUE.equals(stringRedisTemplate.opsForValue().getBit(key, 15)) ? 1 : 0);
+
+            String documentId = eventDTO.getDeviceId();
+            UpdateQuery updateQuery = UpdateQuery.builder(documentId)
+                    .withDocument(Document.from(entity))
+                    .build();
+            queries.add(updateQuery);
+        }
+
+        elasticsearchRestTemplate.bulkUpdate(queries, IndexCoordinates.of("first_app_launch"));
     }
 }

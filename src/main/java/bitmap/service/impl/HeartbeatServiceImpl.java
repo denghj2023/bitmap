@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -75,19 +76,19 @@ public class HeartbeatServiceImpl implements HeartbeatService {
     @Override
     public void statisticsSessionDuration(LocalDate activeDate) {
         // Query daily launch event of the device from ES.
-        this.queryDailyLaunchEvent(activeDate, eventDTO -> {
+        this.queryDailyLaunchEvent(activeDate, eventDTOS -> {
             // Calculate the session duration of device.
-            this.calculateSessionDurationOfDevice(eventDTO);
+            this.calculateSessionDurationOfDevice(eventDTOS);
 
             // Calculate the session duration of daily active device.
-            this.calculateSessionDurationOfDailyActiveDevice(eventDTO, activeDate);
+            this.calculateSessionDurationOfDailyActiveDevice(eventDTOS, activeDate);
         });
     }
 
     // Query daily launch event of the device from ES.
-    private void queryDailyLaunchEvent(LocalDate activeDate, Consumer<EventDTO> consumer) {
+    private void queryDailyLaunchEvent(LocalDate activeDate, Consumer<List<EventDTO>> consumer) {
         ZonedDateTime start = activeDate.atStartOfDay(ZoneId.systemDefault());
-        int pageSize = 1000;
+        int pageSize = 500;
         int currentPage = 0;
 
         while (true) {
@@ -106,9 +107,8 @@ public class HeartbeatServiceImpl implements HeartbeatService {
                     .map(SearchHit::getContent)
                     .collect(Collectors.toList());
 
-            for (EventDTO result : results) {
-                consumer.accept(result);
-            }
+            // Consume the results.
+            consumer.accept(results);
 
             if (results.size() < pageSize) {
                 break;
@@ -119,55 +119,65 @@ public class HeartbeatServiceImpl implements HeartbeatService {
     }
 
     // Calculate the session duration of device.
-    private void calculateSessionDurationOfDevice(EventDTO eventDTO) {
-        // Calculate the session duration by counting the bits.
-        String key = String.format(KEY_OF_HEARTBEAT_PER_MINUTE, eventDTO.getDeviceId());
-        Long sessionDuration = stringRedisTemplate.execute((RedisConnection connection)
-                -> connection.bitCount(key.getBytes()));
-        log.debug("Device {} session duration: {}", eventDTO.getDeviceId(), sessionDuration);
+    private void calculateSessionDurationOfDevice(List<EventDTO> eventDTOS) {
+        List<UpdateQuery> queries = new ArrayList<>(eventDTOS.size());
+        for (EventDTO eventDTO : eventDTOS) {
+            // Calculate the session duration by counting the bits.
+            String key = String.format(KEY_OF_HEARTBEAT_PER_MINUTE, eventDTO.getDeviceId());
+            Long sessionDuration = stringRedisTemplate.execute((RedisConnection connection)
+                    -> connection.bitCount(key.getBytes()));
+            log.debug("Device {} session duration: {}", eventDTO.getDeviceId(), sessionDuration);
 
-        // Update the session duration to ES.
-        EventDTO entity = new EventDTO();
-        entity.put("session_duration", sessionDuration);
+            // Update the session duration to ES.
+            EventDTO entity = new EventDTO();
+            entity.put("session_duration", sessionDuration);
 
-        String documentId = eventDTO.getDeviceId();
-        UpdateQuery updateQuery = UpdateQuery.builder(documentId)
-                .withDocument(Document.from(entity))
-                .build();
-        elasticsearchRestTemplate.update(updateQuery, IndexCoordinates.of("first_app_launch"));
+            String documentId = eventDTO.getDeviceId();
+            UpdateQuery updateQuery = UpdateQuery.builder(documentId)
+                    .withDocument(Document.from(entity))
+                    .build();
+            queries.add(updateQuery);
+        }
+
+        elasticsearchRestTemplate.bulkUpdate(queries, IndexCoordinates.of("first_app_launch"));
     }
 
     // Calculate the session duration of daily active device.
-    private void calculateSessionDurationOfDailyActiveDevice(EventDTO eventDTO, LocalDate activeDate) {
-        // Calculate offset between first launch time and launch time.
-        LocalDateTime firstLaunchTimeStr = Optional.ofNullable(eventDTO.get("first_launch_time"))
-                .map(Object::toString)
-                .map(s -> LocalDateTime.parse(s, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
-                .orElseThrow(() -> new IllegalArgumentException("First launch time must not be null."));
+    private void calculateSessionDurationOfDailyActiveDevice(List<EventDTO> eventDTOS, LocalDate activeDate) {
+        List<UpdateQuery> queries = new ArrayList<>(eventDTOS.size());
+        for (EventDTO eventDTO : eventDTOS) {
+            // Calculate offset between first launch time and launch time.
+            LocalDateTime firstLaunchTimeStr = Optional.ofNullable(eventDTO.get("first_launch_time"))
+                    .map(Object::toString)
+                    .map(s -> LocalDateTime.parse(s, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                    .orElseThrow(() -> new IllegalArgumentException("First launch time must not be null."));
 
-        LocalDateTime launchTimeStr = Optional.ofNullable(eventDTO.get("launch_time"))
-                .map(Object::toString)
-                .map(s -> LocalDateTime.parse(s, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
-                .orElseThrow(() -> new IllegalArgumentException("Launch time must not be null."));
+            LocalDateTime launchTimeStr = Optional.ofNullable(eventDTO.get("launch_time"))
+                    .map(Object::toString)
+                    .map(s -> LocalDateTime.parse(s, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                    .orElseThrow(() -> new IllegalArgumentException("Launch time must not be null."));
 
-        long days = Duration.between(firstLaunchTimeStr, launchTimeStr).toDays();
-        long start = days * 180;
-        long end = days * 180 + 179;
+            long days = Duration.between(firstLaunchTimeStr, launchTimeStr).toDays();
+            long start = days * 180;
+            long end = days * 180 + 179;
 
-        // Calculate the session duration by counting the bits.
-        String key = String.format(KEY_OF_HEARTBEAT_PER_MINUTE, eventDTO.getDeviceId());
-        Long sessionDuration = stringRedisTemplate.execute((RedisConnection connection)
-                -> connection.bitCount(key.getBytes(), start, end));
-        log.debug("Device {} session duration: {}", eventDTO.getDeviceId(), sessionDuration);
+            // Calculate the session duration by counting the bits.
+            String key = String.format(KEY_OF_HEARTBEAT_PER_MINUTE, eventDTO.getDeviceId());
+            Long sessionDuration = stringRedisTemplate.execute((RedisConnection connection)
+                    -> connection.bitCount(key.getBytes(), start, end));
+            log.debug("Device {} session duration: {}", eventDTO.getDeviceId(), sessionDuration);
 
-        // Update the session duration to ES.
-        EventDTO entity = new EventDTO();
-        entity.put("session_duration", sessionDuration);
+            // Update the session duration to ES.
+            EventDTO entity = new EventDTO();
+            entity.put("session_duration", sessionDuration);
 
-        String documentId = eventDTO.getDeviceId() + "_" + activeDate.format(DateTimeFormatter.ISO_DATE);
-        UpdateQuery updateQuery = UpdateQuery.builder(documentId)
-                .withDocument(Document.from(entity))
-                .build();
-        elasticsearchRestTemplate.update(updateQuery, IndexCoordinates.of("daily_app_launch_unique"));
+            String documentId = eventDTO.getDeviceId() + "_" + activeDate.format(DateTimeFormatter.ISO_DATE);
+            UpdateQuery updateQuery = UpdateQuery.builder(documentId)
+                    .withDocument(Document.from(entity))
+                    .build();
+            queries.add(updateQuery);
+        }
+
+        elasticsearchRestTemplate.bulkUpdate(queries, IndexCoordinates.of("daily_app_launch_unique"));
     }
 }

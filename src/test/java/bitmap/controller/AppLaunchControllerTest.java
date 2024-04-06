@@ -1,6 +1,7 @@
 package bitmap.controller;
 
 import bitmap.dto.EventDTO;
+import bitmap.service.AppLaunchService;
 import bitmap.service.impl.AppLaunchServiceImpl;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
@@ -11,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
-import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
@@ -35,9 +35,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AppLaunchControllerTest {
 
     @Resource
-    ElasticsearchRestTemplate elasticsearchRestTemplate;
-    @Resource
     StringRedisTemplate stringRedisTemplate;
+    @Resource
+    AppLaunchService appLaunchService;
 
     @Test
     void test(@Autowired MockMvc mvc) throws Exception {
@@ -56,18 +56,14 @@ class AppLaunchControllerTest {
                 .andExpect(jsonPath("$.msg").value("SUCCESS"));
 
         // Validate: get first_app_launch from ES.
-        String idOfFirstAppLaunch = map.get("platform") + "_" + map.get("androidid");
-        EventDTO firstAppLaunch = elasticsearchRestTemplate.get(idOfFirstAppLaunch,
-                EventDTO.class,
-                IndexCoordinates.of("first_app_launch"));
+        EventDTO firstAppLaunch =
+                appLaunchService.getFirstLaunch(map.get("platform") + "_" + map.get("androidid"));
         log.info("firstAppLaunch: {}", JSON.toJSONString(firstAppLaunch, JSONWriter.Feature.PrettyFormat));
         Assertions.assertNotNull(firstAppLaunch);
 
         // Validate: get daily_app_launch_unique from ES.
-        String idOfAppLaunch = map.get("platform") + "_" + map.get("androidid") + "_" + LocalDate.now();
-        EventDTO appLaunch = elasticsearchRestTemplate.get(idOfAppLaunch,
-                EventDTO.class,
-                IndexCoordinates.of("daily_app_launch_unique"));
+        EventDTO appLaunch =
+                appLaunchService.getDailyLaunch(map.get("platform") + "_" + map.get("androidid"), LocalDate.now());
         log.debug("appLaunch: {}", JSON.toJSONString(appLaunch, JSONWriter.Feature.PrettyFormat));
         Assertions.assertNotNull(appLaunch);
 
@@ -83,20 +79,15 @@ class AppLaunchControllerTest {
                 .andExpect(jsonPath("$.msg").value("SUCCESS"));
 
         // Validate: get first_app_launch from ES.
-        idOfFirstAppLaunch = map.get("platform") + "_" + map.get("androidid");
-        firstAppLaunch = elasticsearchRestTemplate.get(idOfFirstAppLaunch,
-                EventDTO.class,
-                IndexCoordinates.of("first_app_launch"));
+        firstAppLaunch = appLaunchService.getFirstLaunch(map.get("platform") + "_" + map.get("androidid"));
         log.info("firstAppLaunch: {}", JSON.toJSONString(firstAppLaunch, JSONWriter.Feature.PrettyFormat));
         Assertions.assertNotNull(firstAppLaunch);
         Assertions.assertEquals(requestTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
                 firstAppLaunch.get("request_time").toString());
 
         // Validate: get daily_app_launch_unique from ES.
-        idOfAppLaunch = map.get("platform") + "_" + map.get("androidid") + "_" + LocalDate.now().plusDays(1);
-        appLaunch = elasticsearchRestTemplate.get(idOfAppLaunch,
-                EventDTO.class,
-                IndexCoordinates.of("daily_app_launch_unique"));
+        appLaunch = appLaunchService.getDailyLaunch(map.get("platform") + "_" + map.get("androidid"),
+                LocalDate.now().plusDays(1));
         log.debug("appLaunch: {}", JSON.toJSONString(appLaunch, JSONWriter.Feature.PrettyFormat));
         Assertions.assertNotNull(appLaunch);
 

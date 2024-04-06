@@ -1,5 +1,6 @@
 package bitmap.controller;
 
+import bitmap.service.impl.HeartbeatServiceImpl;
 import com.alibaba.fastjson2.JSON;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
@@ -58,7 +59,7 @@ class HeartbeatControllerTest {
 
         // Validate: get total session duration from Redis.
         String deviceId = map.get("platform") + "_" + map.get("androidid");
-        String key = String.format(HeartbeatController.KEY_OF_HEARTBEAT_PER_MINUTE, deviceId);
+        String key = String.format(HeartbeatServiceImpl.KEY_OF_HEARTBEAT_PER_MINUTE, deviceId);
         Long count = stringRedisTemplate.execute((RedisConnection connection)
                 -> connection.bitCount(key.getBytes()));
         Assertions.assertEquals(1, count);

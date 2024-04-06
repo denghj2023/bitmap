@@ -12,10 +12,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.Optional;
@@ -84,6 +81,13 @@ public class AppLaunchServiceImpl implements AppLaunchService {
     }
 
     @Override
+    public EventDTO getFirstLaunch(String deviceId) {
+        return elasticsearchRestTemplate.get(deviceId,
+                EventDTO.class,
+                IndexCoordinates.of("first_app_launch"));
+    }
+
+    @Override
     public void recordDailyLaunch(EventDTO eventDTO) {
         String deviceId = eventDTO.getDeviceId();
         ZonedDateTime eventTime = eventDTO.getEventTime();
@@ -135,5 +139,12 @@ public class AppLaunchServiceImpl implements AppLaunchService {
 
         // Set the corresponding bit to 1.
         stringRedisTemplate.opsForValue().setBit(keyOfLaunchPerDay, offset, true);
+    }
+
+    @Override
+    public EventDTO getDailyLaunch(String deviceId, LocalDate launchDate) {
+        return elasticsearchRestTemplate.get(deviceId + "_" + launchDate,
+                EventDTO.class,
+                IndexCoordinates.of("daily_app_launch_unique"));
     }
 }

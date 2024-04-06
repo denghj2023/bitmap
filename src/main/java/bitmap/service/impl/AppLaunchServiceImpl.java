@@ -69,6 +69,7 @@ public class AppLaunchServiceImpl implements AppLaunchService {
 
         try {
             eventDTO.put("first_launch_time", eventDTO.getEventTime().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+            eventDTO.put("device_id", eventDTO.getDeviceId());
 
             // Index to Elasticsearch.
             IndexQuery indexQuery = new IndexQueryBuilder()
@@ -78,6 +79,7 @@ public class AppLaunchServiceImpl implements AppLaunchService {
             elasticsearchRestTemplate.index(indexQuery, IndexCoordinates.of("first_app_launch"));
         } finally {
             eventDTO.remove("first_launch_time");
+            eventDTO.remove("device_id");
         }
     }
 
@@ -105,6 +107,7 @@ public class AppLaunchServiceImpl implements AppLaunchService {
                     .atZone(ZoneId.systemDefault())
                     .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
             eventDTO.put("launch_time", eventTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+            eventDTO.put("device_id", deviceId);
 
             // Index to Elasticsearch.
             IndexQuery indexQuery = new IndexQueryBuilder()
@@ -115,6 +118,7 @@ public class AppLaunchServiceImpl implements AppLaunchService {
         } finally {
             eventDTO.remove("first_launch_time");
             eventDTO.remove("launch_time");
+            eventDTO.remove("device_id");
         }
 
         /*

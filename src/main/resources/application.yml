@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: 'bitmap'
+  redis:
+    host: 'localhost'
+    port: 6379
+    lettuce:
+      pool:
+        enabled: true
+  elasticsearch:
+    uris: localhost
+    username: elastic
+    password: 's8t1mmCuS3ywxU0=4AxY'
+
+server:
+  error:
+    include-message: always
+    include-exception: on
+    include-binding-errors: always
+    include-stacktrace: always
+  tomcat:
+    threads:
+      min-spare: 1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+

@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
@@ -48,7 +47,7 @@ class AppLaunchControllerTest {
         map.put("androidid", UUID.randomUUID().toString());
         map.put("event_time_offset_sec", 5);
         map.put("request_time", requestTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-        mvc.perform(post("/events/app_launch")
+        mvc.perform(post("/app_launch")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(JSON.toJSONString(map)))
                 .andExpect(status().isOk())
@@ -71,7 +70,7 @@ class AppLaunchControllerTest {
 
         // App launch.
         map.put("request_time", requestTime.plusDays(1).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-        mvc.perform(post("/events/app_launch")
+        mvc.perform(post("/app_launch")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(JSON.toJSONString(map)))
                 .andExpect(status().isOk())

@@ -4,19 +4,17 @@ import bitmap.dto.EventDTO;
 import bitmap.service.AppLaunchService;
 import cn.hutool.core.map.MapUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import java.time.LocalDate;
 
 /**
  * App launch controller
  */
 @Slf4j
 @RestController
-@RequestMapping("/events")
+@RequestMapping
 public class AppLaunchController {
 
     @Resource
@@ -33,6 +31,15 @@ public class AppLaunchController {
         // Record app launch event every day.
         appLaunchService.recordDailyLaunch(eventDTO);
 
+        return MapUtil.builder()
+                .put("code", 0)
+                .put("msg", "SUCCESS")
+                .build();
+    }
+
+    @PostMapping("/stat-retention")
+    public Object statRetention(@RequestParam LocalDate date) {
+        appLaunchService.statisticsRetention(date);
         return MapUtil.builder()
                 .put("code", 0)
                 .put("msg", "SUCCESS")

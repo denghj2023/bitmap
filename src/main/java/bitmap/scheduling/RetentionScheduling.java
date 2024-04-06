@@ -18,6 +18,5 @@ public class RetentionScheduling {
     @Scheduled(cron = "0 0 0,4 * * ?")
     public void scheduleTaskWithFixedRate() {
         appLaunchService.statisticsRetention(LocalDate.now().minusDays(1));
-        appLaunchService.statisticsRetention(LocalDate.now().minusDays(2));
     }
 }

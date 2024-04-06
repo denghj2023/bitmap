@@ -18,6 +18,5 @@ public class SessionDurationScheduling {
     @Scheduled(cron = "0 0 0,4 * * ?")
     public void scheduleTaskWithFixedRate() {
         heartbeatService.statisticsSessionDuration(LocalDate.now().minusDays(1));
-        heartbeatService.statisticsSessionDuration(LocalDate.now().minusDays(2));
     }
 }

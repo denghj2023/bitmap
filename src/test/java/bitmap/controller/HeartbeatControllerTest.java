@@ -42,7 +42,7 @@ class HeartbeatControllerTest {
         map.put("request_time", requestTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
 
         // App launch.
-        mvc.perform(post("/events/app_launch")
+        mvc.perform(post("/app_launch")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(JSON.toJSONString(map)))
                 .andExpect(status().isOk())
@@ -50,7 +50,7 @@ class HeartbeatControllerTest {
                 .andExpect(jsonPath("$.msg").value("SUCCESS"));
 
         // Heartbeat.
-        mvc.perform(post("/events/heartbeat")
+        mvc.perform(post("/heartbeat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(JSON.toJSONString(map)))
                 .andExpect(status().isOk())
@@ -68,7 +68,7 @@ class HeartbeatControllerTest {
         // Heartbeat.
         requestTime = requestTime.plusMinutes(3);
         map.put("request_time", requestTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-        mvc.perform(post("/events/heartbeat")
+        mvc.perform(post("/heartbeat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(JSON.toJSONString(map)))
                 .andExpect(status().isOk())
@@ -101,7 +101,7 @@ class HeartbeatControllerTest {
         String deviceId = map.get("platform") + "_" + map.get("androidid");
 
         // App launch.
-        mvc.perform(post("/events/app_launch")
+        mvc.perform(post("/app_launch")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(JSON.toJSONString(map)))
                 .andExpect(status().isOk())
@@ -139,7 +139,7 @@ class HeartbeatControllerTest {
 
     private void heartbeat(MockMvc mvc, Map<String, Object> map, ZonedDateTime withMinute) throws Exception {
         map.put("request_time", withMinute.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-        mvc.perform(post("/events/heartbeat")
+        mvc.perform(post("/heartbeat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(JSON.toJSONString(map)))
                 .andExpect(status().isOk())

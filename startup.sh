@@ -4,7 +4,7 @@
 # Application Configuration
 #===========================================================================================
 HOME_DIR=$(cd "$(dirname $0)";pwd)
-JAR_FILE=${HOME_DIR}/bitmap.jar
+JAR_FILE=${HOME_DIR}/target/bitmap.jar
 LOG_HOME=${HOME_DIR}/logs
 APP_OPT="-Dlog.home=${LOG_HOME} -Dserver.port=8080 -Dlogging.config=classpath:logback-server.xml -Dspring.elasticsearch.uris=http://10.0.0.10:9200"
 PID_FILE=${HOME_DIR}/pid # Corrected PID_FILE assignment

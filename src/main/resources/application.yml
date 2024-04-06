@@ -8,8 +8,8 @@ spring:
       pool:
         enabled: true
   elasticsearch:
-    uris: localhost
-    username: elastic
+    uris: 'http://localhost:9200'
+    username: 'elastic'
     password: 's8t1mmCuS3ywxU0=4AxY'
 
 server:

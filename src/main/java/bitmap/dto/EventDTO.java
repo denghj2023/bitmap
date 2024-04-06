@@ -1,4 +1,4 @@
-package bitmap;
+package bitmap.dto;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;

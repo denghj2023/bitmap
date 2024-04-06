@@ -1,5 +1,6 @@
-package bitmap;
+package bitmap.controller;
 
+import bitmap.dto.EventDTO;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
 import lombok.extern.slf4j.Slf4j;

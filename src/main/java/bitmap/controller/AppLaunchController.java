@@ -1,5 +1,6 @@
-package bitmap;
+package bitmap.controller;
 
+import bitmap.dto.EventDTO;
 import cn.hutool.core.map.MapUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;

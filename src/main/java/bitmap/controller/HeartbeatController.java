@@ -1,9 +1,9 @@
 package bitmap.controller;
 
 import bitmap.dto.EventDTO;
+import bitmap.service.AppLaunchService;
 import cn.hutool.core.map.MapUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.Resource;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 /**
  * Heartbeat controller
@@ -29,7 +30,7 @@ public class HeartbeatController {
     @Resource
     private StringRedisTemplate stringRedisTemplate;
     @Resource
-    private RedisTemplate<String, LocalDateTime> redisTemplate;
+    private AppLaunchService appLaunchService;
 
     /**
      * Use Redis bitmap to record the heartbeat of the device,
@@ -42,12 +43,15 @@ public class HeartbeatController {
         String deviceId = eventDTO.getDeviceId();
 
         // Get first launch time of th device.
-        String key = String.format(AppLaunchController.KEY_OF_FIRST_LAUNCH_TIME, deviceId);
-        LocalDateTime firstLaunchTime = redisTemplate.opsForValue().get(key);
+        ZonedDateTime firstLaunchTime = appLaunchService.getFirstLaunchTime(deviceId);
 
         if (firstLaunchTime != null) {
             // Calculate the offset.
-            LocalDateTime start = firstLaunchTime.withHour(0).withMinute(0).withSecond(0).withNano(0);
+            LocalDateTime start = firstLaunchTime.toLocalDateTime()
+                    .withHour(0)
+                    .withMinute(0)
+                    .withSecond(0)
+                    .withNano(0);
             long offset = Duration.between(start, eventTime).toMinutes();
 
             // Present the offset as hour:minute.

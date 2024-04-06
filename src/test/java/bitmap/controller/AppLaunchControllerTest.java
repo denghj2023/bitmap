@@ -1,6 +1,7 @@
 package bitmap.controller;
 
 import bitmap.dto.EventDTO;
+import bitmap.service.impl.AppLaunchServiceImpl;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
 import lombok.extern.slf4j.Slf4j;
@@ -101,7 +102,7 @@ class AppLaunchControllerTest {
 
         // ------------------------------
         // Validate: get daily launch count from Redis.
-        String keyOfDailyLaunch = String.format(AppLaunchController.KEY_OF_LAUNCH_PER_DAY, appLaunch.getDeviceId());
+        String keyOfDailyLaunch = String.format(AppLaunchServiceImpl.KEY_OF_LAUNCH_PER_DAY, appLaunch.getDeviceId());
         Long count = stringRedisTemplate.execute((RedisConnection connection)
                 -> connection.bitCount(keyOfDailyLaunch.getBytes()));
         Assertions.assertEquals(2, count);

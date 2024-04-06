@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
  */
 @Slf4j
 @RestController
-@RequestMapping
+@RequestMapping("/events")
 public class HeartbeatController {
 
     @Resource
@@ -33,7 +33,7 @@ public class HeartbeatController {
      */
     @PostMapping("/heartbeat")
     public Object appLaunch(@RequestBody EventDTO eventDTO) {
-        LocalDateTime eventTime = eventDTO.getEventTime();
+        LocalDateTime eventTime = eventDTO.getEventTime().toLocalDateTime();
         String deviceId = eventDTO.getDeviceId();
 
         // Get first launch time of th device.

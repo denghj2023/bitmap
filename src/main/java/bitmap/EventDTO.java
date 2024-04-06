@@ -3,7 +3,7 @@ package bitmap;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Optional;
@@ -22,22 +22,22 @@ public class EventDTO extends HashMap<String, Object> {
 
         if ("android".equalsIgnoreCase(platform)) {
             return Optional.ofNullable(get("androidid"))
-                    .map(Object::toString)
+                    .map(s -> platform + "_" + s)
                     .orElse(null);
         } else if ("ios".equalsIgnoreCase(platform)) {
             return Optional.ofNullable(get("idfv"))
-                    .map(Object::toString)
+                    .map(s -> platform + "_" + s)
                     .orElse(null);
         } else {
             return null;
         }
     }
 
-    public LocalDateTime getEventTime() {
-        LocalDateTime eventTime = Optional.ofNullable(get("event_time"))
+    public ZonedDateTime getEventTime() {
+        ZonedDateTime requestTime = Optional.ofNullable(get("request_time"))
                 .map(Object::toString)
                 // 2024-04-05T02:43:00+08:00
-                .map(s -> LocalDateTime.parse(s, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                .map(s -> ZonedDateTime.parse(s, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
                 .orElse(null);
 
         Long eventTimeOffsetSec = Optional.ofNullable(get("event_time_offset_sec"))
@@ -45,6 +45,6 @@ public class EventDTO extends HashMap<String, Object> {
                 .map(Long::parseLong)
                 .orElse(0L);
 
-        return eventTime != null ? eventTime.plusSeconds(eventTimeOffsetSec) : null;
+        return requestTime != null ? requestTime.plusSeconds(eventTimeOffsetSec) : null;
     }
 }

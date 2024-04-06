@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Slf4j
 @SpringBootTest
 @AutoConfigureMockMvc
-class HeartbeatControllerTest {
+class AppLaunchControllerTest {
 
     @Test
     void test(@Autowired MockMvc mvc) throws Exception {
@@ -28,8 +28,8 @@ class HeartbeatControllerTest {
         map.put("platform", "android");
         map.put("androidid", UUID.randomUUID().toString());
         map.put("event_time_offset_sec", 5);
-        map.put("event_time", "2024-04-05T02:43:00+08:00");
-        mvc.perform(post("/events/heartbeat")
+        map.put("request_time", "2024-04-05T02:43:00+08:00");
+        mvc.perform(post("/events/app_launch")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(JSON.toJSONString(map)))
                 .andExpect(status().isOk())

@@ -1,5 +1,6 @@
 package bitmap;
 
+import bitmap.service.impl.HeartbeatServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -32,15 +33,12 @@ class RedisBitTest {
         // Get all the bits as a binary string
         ValueOperations<String, String> valueOps = stringRedisTemplate.opsForValue();
         String storedValue = valueOps.get(key);
-        if (storedValue != null) {
-            StringBuilder bits = new StringBuilder();
-            for (char ch : storedValue.toCharArray()) {
-                bits.append(String.format("%8s", Integer.toBinaryString(ch)).replace(' ', '0'));
-            }
-            log.info("All bits: {}", bits);
-        } else {
-            log.info("No value stored under key 'test'");
+        Assertions.assertNotNull(storedValue);
+        StringBuilder bits = new StringBuilder();
+        for (char ch : storedValue.toCharArray()) {
+            bits.append(String.format("%8s", Integer.toBinaryString(ch)).replace(' ', '0'));
         }
+        log.info("All bits: {}", bits);
 
         // Use execute to perform BITCOUNT.
         Long bitsSet = stringRedisTemplate.execute((RedisConnection connection) -> connection.bitCount(key.getBytes()));
@@ -49,5 +47,16 @@ class RedisBitTest {
 
         // Delete the key.
         stringRedisTemplate.delete(key);
+    }
+
+    @Test
+    void test2() {
+        String deviceId = "android_f2eaff29-4a76-4f8b-a24f-c9cfb77ba8f9";
+        String key = String.format(HeartbeatServiceImpl.KEY_OF_HEARTBEAT_PER_MINUTE, deviceId);
+        stringRedisTemplate.opsForValue().setBit(key, 1, true);
+
+        // Use execute to perform BITCOUNT.
+        Long bitsSet = stringRedisTemplate.execute((RedisConnection connection) -> connection.bitCount(key.getBytes()));
+        log.info("Number of bits set to 1: {}", bitsSet);
     }
 }

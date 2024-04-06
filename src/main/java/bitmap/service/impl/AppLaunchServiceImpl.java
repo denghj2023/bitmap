@@ -93,7 +93,7 @@ public class AppLaunchServiceImpl implements AppLaunchService {
         ZonedDateTime eventTime = eventDTO.getEventTime();
 
         // If exists, return.
-        String documentId = deviceId + "_" + eventTime.toLocalDate();
+        String documentId = deviceId + "_" + eventTime.toLocalDate().format(DateTimeFormatter.ISO_DATE);
         if (elasticsearchRestTemplate.exists(documentId, IndexCoordinates.of("daily_app_launch_unique"))) {
             return;
         }

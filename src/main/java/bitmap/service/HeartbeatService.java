@@ -1,6 +1,5 @@
 package bitmap.service;
 
-import bitmap.dto.AverageSessionDurationDTO;
 import bitmap.dto.EventDTO;
 
 import java.time.LocalDate;
@@ -19,5 +18,5 @@ public interface HeartbeatService {
      *
      * @param activeDate active date
      */
-    AverageSessionDurationDTO statisticsAverageSessionDuration(LocalDate activeDate);
+    void statisticsSessionDuration(LocalDate activeDate);
 }

@@ -90,4 +90,60 @@ class HeartbeatControllerTest {
         log.debug("All bits: {}", bits);
         // Assertions.assertEquals("00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000010", bits.toString());
     }
+
+    @Test
+    void test2(@Autowired MockMvc mvc) throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("platform", "android");
+        map.put("androidid", UUID.randomUUID().toString());
+        map.put("event_time_offset_sec", 5);
+        map.put("request_time", ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+        String deviceId = map.get("platform") + "_" + map.get("androidid");
+
+        // App launch.
+        mvc.perform(post("/events/app_launch")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON.toJSONString(map)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("SUCCESS"));
+
+        // Heartbeat.
+        this.heartbeat(mvc, map, ZonedDateTime.now());
+        Long sessionDuration = this.bitCount(deviceId, 0, 179);
+        Assertions.assertEquals(1, sessionDuration);
+
+        // Heartbeat.
+        this.heartbeat(mvc, map, ZonedDateTime.now().withHour(23).withMinute(59));
+        sessionDuration = this.bitCount(deviceId, 0, 179);
+        Assertions.assertEquals(2, sessionDuration);
+
+        // Heartbeat.
+        this.heartbeat(mvc, map, ZonedDateTime.now().plusDays(1).withHour(0).withMinute(0));
+        sessionDuration = this.bitCount(deviceId, 180, 359);
+        Assertions.assertEquals(1, sessionDuration);
+
+        // Heartbeat.
+        this.heartbeat(mvc, map, ZonedDateTime.now().plusDays(1).withHour(23).withMinute(59));
+        sessionDuration = this.bitCount(deviceId, 180, 359);
+        Assertions.assertEquals(2, sessionDuration);
+    }
+
+    private Long bitCount(String deviceId, long start, long end) {
+        String key = String.format(HeartbeatServiceImpl.KEY_OF_HEARTBEAT_PER_MINUTE, deviceId);
+        Long sessionDuration = stringRedisTemplate.execute((RedisConnection connection)
+                -> connection.bitCount(key.getBytes(), start, end));
+        log.debug("Device {} session duration: {}", deviceId, sessionDuration);
+        return sessionDuration;
+    }
+
+    private void heartbeat(MockMvc mvc, Map<String, Object> map, ZonedDateTime withMinute) throws Exception {
+        map.put("request_time", withMinute.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+        mvc.perform(post("/events/heartbeat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON.toJSONString(map)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("SUCCESS"));
+    }
 }

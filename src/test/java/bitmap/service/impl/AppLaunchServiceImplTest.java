@@ -15,7 +15,7 @@ class AppLaunchServiceImplTest {
     AppLaunchServiceImpl appLaunchService;
 
     @Test
-    void statisticsRetention() {
-        appLaunchService.statisticsRetention(LocalDate.now());
+    void statisticsRetentionAndLifetime() {
+        appLaunchService.statisticsRetentionAndLifetime(LocalDate.now());
     }
 }

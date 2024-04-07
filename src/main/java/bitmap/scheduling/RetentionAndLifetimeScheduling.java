@@ -1,6 +1,6 @@
 package bitmap.scheduling;
 
-import bitmap.service.HeartbeatService;
+import bitmap.service.AppLaunchService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -12,16 +12,16 @@ import java.time.LocalDate;
 @Slf4j
 @Async
 @Component
-public class SessionDurationScheduling {
+public class RetentionAndLifetimeScheduling {
 
     @Resource
-    private HeartbeatService heartbeatService;
+    private AppLaunchService appLaunchService;
 
     @Scheduled(cron = "0 0 0,4 * * ?")
-    public void statisticsSessionDuration() {
-        log.info("Session duration scheduling start.");
+    public void statisticsRetentionAndLifetime() {
+        log.info("Retention scheduling start.");
         long start = System.currentTimeMillis();
-        heartbeatService.statisticsSessionDuration(LocalDate.now().minusDays(1));
-        log.info("Session duration scheduling end, cost: {}s.", (System.currentTimeMillis() - start) / 1000);
+        appLaunchService.statisticsRetentionAndLifetime(LocalDate.now().minusDays(1));
+        log.info("Retention scheduling end, cost: {}s.", (System.currentTimeMillis() - start) / 1000);
     }
 }

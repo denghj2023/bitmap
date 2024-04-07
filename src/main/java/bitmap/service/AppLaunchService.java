@@ -56,5 +56,5 @@ public interface AppLaunchService {
     /**
      * Statistics retention.
      */
-    void statisticsRetention(LocalDate activeDate);
+    void statisticsRetentionAndLifetime(LocalDate activeDate);
 }

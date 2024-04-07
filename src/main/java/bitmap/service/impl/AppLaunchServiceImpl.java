@@ -11,6 +11,7 @@ import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.document.Document;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.*;
+import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -157,9 +158,15 @@ public class AppLaunchServiceImpl implements AppLaunchService {
     }
 
     @Override
-    public void statisticsRetention(LocalDate activeDate) {
+    public void statisticsRetentionAndLifetime(LocalDate activeDate) {
         // Query daily launch event of the device from ES, and calculate the retention of device.
-        this.queryDailyLaunchEvent(activeDate, this::calculateRetentionOfDevice);
+        this.queryDailyLaunchEvent(activeDate, eventDTOS -> {
+            // Calculate the retention of device.
+            this.calculateRetentionOfDevice(eventDTOS);
+
+            // Calculate user lifetime of device.
+            this.calculateUserLifetimeOfDevice(eventDTOS);
+        });
     }
 
     // Query daily launch event of the device from ES.
@@ -214,6 +221,30 @@ public class AppLaunchServiceImpl implements AppLaunchService {
                     Boolean.TRUE.equals(stringRedisTemplate.opsForValue().getBit(key, 7)) ? 1 : 0);
             entity.put("retention_day_15",
                     Boolean.TRUE.equals(stringRedisTemplate.opsForValue().getBit(key, 15)) ? 1 : 0);
+
+            String documentId = eventDTO.getDeviceId();
+            UpdateQuery updateQuery = UpdateQuery.builder(documentId)
+                    .withDocument(Document.from(entity))
+                    .build();
+            queries.add(updateQuery);
+        }
+
+        elasticsearchRestTemplate.bulkUpdate(queries, IndexCoordinates.of("first_app_launch"));
+    }
+
+    // Calculate user lifetime of device.
+    private void calculateUserLifetimeOfDevice(List<EventDTO> eventDTOS) {
+        List<UpdateQuery> queries = new ArrayList<>(eventDTOS.size());
+        for (EventDTO eventDTO : eventDTOS) {
+            // Calculate use lifetime of device.
+            String key = String.format(KEY_OF_LAUNCH_PER_DAY, eventDTO.getDeviceId());
+            Long lifetime = stringRedisTemplate.execute((RedisConnection connection)
+                    -> connection.bitCount(key.getBytes()));
+            log.debug("Device {} lifetime: {}", eventDTO.getDeviceId(), lifetime);
+
+            // Update the session duration to ES.
+            EventDTO entity = new EventDTO();
+            entity.put("user_lifetime", lifetime);
 
             String documentId = eventDTO.getDeviceId();
             UpdateQuery updateQuery = UpdateQuery.builder(documentId)

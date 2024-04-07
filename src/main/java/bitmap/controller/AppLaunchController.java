@@ -37,9 +37,9 @@ public class AppLaunchController {
                 .build();
     }
 
-    @PostMapping("/stat-retention")
+    @PostMapping("/stat-retention-and-lifetime")
     public Object statRetention(@RequestParam LocalDate date) {
-        appLaunchService.statisticsRetention(date);
+        appLaunchService.statisticsRetentionAndLifetime(date);
         return MapUtil.builder()
                 .put("code", 0)
                 .put("msg", "SUCCESS")

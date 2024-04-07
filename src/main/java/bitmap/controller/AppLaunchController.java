@@ -4,6 +4,7 @@ import bitmap.dto.EventDTO;
 import bitmap.service.AppLaunchService;
 import cn.hutool.core.map.MapUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -38,7 +39,7 @@ public class AppLaunchController {
     }
 
     @PostMapping("/stat-retention-and-lifetime")
-    public Object statRetention(@RequestParam LocalDate date) {
+    public Object statRetention(@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         appLaunchService.statisticsRetentionAndLifetime(date);
         return MapUtil.builder()
                 .put("code", 0)

@@ -4,6 +4,7 @@ import bitmap.dto.EventDTO;
 import bitmap.service.HeartbeatService;
 import cn.hutool.core.map.MapUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -31,7 +32,7 @@ public class HeartbeatController {
     }
 
     @PostMapping("/stat-session-duration")
-    public Object statSessionDuration(@RequestParam LocalDate date) {
+    public Object statSessionDuration(@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         heartbeatService.statisticsSessionDuration(date);
         return MapUtil.builder()
                 .put("code", 0)
